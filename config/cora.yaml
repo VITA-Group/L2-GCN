@@ -1,0 +1,22 @@
+node_num: 2708
+feat_dim: 1433
+class_num: 7
+
+layer_num: 2
+hidden_dim: 16
+learning_rate: 0.005
+batch_size: 256
+epoch_num: [80, 80]
+
+l2o_learning_rate: 0.05
+baseline_reward: 0.3
+total_round: 200
+sample_node_num: 1024
+stop_prob_threshold: 0.6
+controller_len: 20
+init_round: 10 # ir*5
+decision_step: 10
+time_ratio: 0.0001
+min_batch: 35
+max_batch: 95
+baseline_ratio: 0.9
