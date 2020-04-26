@@ -10,8 +10,8 @@ import yaml
 import argparse
 import scipy.sparse as sps
 
-import l2o_lwgcn.utils as utils
-import l2o_lwgcn.net as net
+import l2_gcn.utils as utils
+import l2_gcn.net as net
 
 
 def run(dataset_load_func, parse_args, seed):
@@ -32,10 +32,9 @@ def run(dataset_load_func, parse_args, seed):
         if (not parg_key in args.keys()) or parse_args[parg_key] == None:
             continue
         args[parg_key] = parse_args[parg_key]
-    print(args)
 
     # result file
-    result_file = './result/' + config_file[:-5] + str(args['layer_num']) + '_layer_' + str(seed) + '.npy'
+    result_file = './result/' + config_file[:-5] + '_'  + str(args['layer_num']) + '_layer_' + str(seed) + '.npy'
     result_loss_data = []
 
     ##############################################################
@@ -57,8 +56,7 @@ def run(dataset_load_func, parse_args, seed):
     num_nodes = args['node_num']
     feat_train = torch.FloatTensor(feat_data)[train, :]
     label_train = labels[train]
-    feat_val = torch.FloatTensor(feat_data)[val, :]
-    feat_test = torch.FloatTensor(feat_data)[test, :]
+    feat_test = torch.FloatTensor(feat_data)
 
     # Adj matrix generate
     Adj_eye = sps.eye(num_nodes, dtype=np.float32).tocsr()
@@ -66,14 +64,10 @@ def run(dataset_load_func, parse_args, seed):
     D_train = Adj_train.sum(axis=0)
     Adj_train = Adj_train.multiply(1/D_train.transpose())
     Adj_train = Adj_train + Adj_eye[train, :][:, train]
-    Adj_val = Adj[val, :][:, val]
-    D_val = Adj_val.sum(axis=0)
-    Adj_val = Adj_val.multiply(1/D_val.transpose())
-    Adj_val = Adj_val + Adj_eye[val, :][:, val]
-    Adj_test = Adj[test, :][:, test]
+    Adj_test = Adj
     D_test = Adj_test.sum(axis=0)
     Adj_test = Adj_test.multiply(1/D_test.transpose())
-    Adj_test = Adj_test + Adj_eye[test, :][:, test]
+    Adj_test = Adj_test + Adj_eye
 
     ##############################################################
     ##############################################################
@@ -88,8 +82,7 @@ def run(dataset_load_func, parse_args, seed):
 
     net_lwgcn = net.net_lwgcn(in_channel=args['feat_dim'], hidden_channel=args['hidden_dim'], out_channel=args['class_num'], layer_num=args['layer_num'])
     optimizer = torch.optim.Adam(net_lwgcn.parameters(), lr=args['learning_rate'])
-    loss_func = nn.BCELoss()
-    sigmoid = nn.Sigmoid()
+    loss_func = nn.CrossEntropyLoss()
 
     for l in range(args['layer_num']):
 
@@ -101,10 +94,6 @@ def run(dataset_load_func, parse_args, seed):
         end_time = time.time()
         times = times + ( end_time - start_time )
         feat_train = torch.FloatTensor(feat_train)
-
-        feat_val = feat_val.numpy()
-        feat_val = Adj_val.dot(feat_val)
-        feat_val = torch.FloatTensor(feat_val) ###
 
         # create data loader
         feeder_train = utils.feeder(feat_train, label_train)
@@ -121,7 +110,6 @@ def run(dataset_load_func, parse_args, seed):
                 start_time = time.time()
                 optimizer.zero_grad()
                 output = net_lwgcn(x, layer_index=l)
-                output = sigmoid(output)
                 loss = loss_func(output, x_label)
                 loss.backward()
                 optimizer.step()
@@ -132,12 +120,6 @@ def run(dataset_load_func, parse_args, seed):
             batch = batch + 1
             epochs = epochs + 1
             print('batch', batch, 'loss:', loss.data)
-
-            if batch % 50 == 0: ###
-                with torch.no_grad():
-                    output = net_lwgcn(feat_val.cuda(), layer_index=l)
-                    output = sigmoid(output)
-                    print('val loss:', loss_func(output, torch.FloatTensor(labels[val]).cuda()).data)
         
             if batch == args['epoch_num'][l]:
 
@@ -145,13 +127,12 @@ def run(dataset_load_func, parse_args, seed):
                 if l != args['layer_num'] - 1:
                     start_time = time.time()
                     feat_train = net_lwgcn(feat_train, layer_index=l, with_classifier=False).detach()
-                    feat_val = net_lwgcn(feat_val, layer_index=l, with_classifier=False).detach() ###
                     end_time = time.time()
                     times = times + ( end_time - start_time )
                 break
 
     os.system('nvidia-smi')
-    np.save(result_file, np.array(result_loss_data))
+    # np.save(result_file, np.array(result_loss_data))
 
     ##############################################################
     ##############################################################
@@ -162,19 +143,16 @@ def run(dataset_load_func, parse_args, seed):
 
     # val or test
     with torch.no_grad():
-        output_val = net_lwgcn.val_test(feat_val, Adj_val)
-        output_val[output_val>0] = 1
-        output_val[output_val<=0] = 0
-        output_test = net_lwgcn.val_test(feat_test, Adj_test)
-        output_test[output_test>0] = 1
-        output_test[output_test<=0] = 0
+        output = net_lwgcn.val_test(feat_test, Adj_test)
+        output_val = output[val]
+        output_test = output[test]
 
-    print("accuracy in val:", f1_score(labels[val], output_val.data.numpy(), average="micro"))
-    print("accuracy in test:", f1_score(labels[test], output_test.data.numpy(), average="micro"))
+    print("accuracy in val:", f1_score(labels[val], output_val.data.numpy().argmax(axis=1), average="micro"))
+    print("accuracy in test:", f1_score(labels[test], output_test.data.numpy().argmax(axis=1), average="micro"))
     print("average epoch time:", times / epochs)
     print("total time:", times)
 
-    return f1_score(labels[test], output_test.data.numpy(), average="micro"), times
+    return f1_score(labels[test], output_test.data.numpy().argmax(axis=1), average="micro"), times
 
     ##############################################################
     ##############################################################
@@ -183,10 +161,9 @@ def run(dataset_load_func, parse_args, seed):
 def parser_loader():
 
     parser = argparse.ArgumentParser(description='L2O_LWGCN')
-    parser.add_argument('--dataset', type=str, default='ppi')
-    parser.add_argument('--config-file', type=str, default='ppi.yaml')
-    parser.add_argument('--layer-num', type=int, default=None)
-    parser.add_argument('--epoch-num', nargs='+', type=int, default=None)
+    parser.add_argument('--dataset', type=str, default='cora')
+    parser.add_argument('--layer-num', type=int, default=2)
+    parser.add_argument('--epoch-num', nargs='+', type=int, default=[80, 80])
 
     return parser
 
@@ -205,15 +182,20 @@ if __name__ == "__main__":
 
     parser = parser_loader()
     parse_args = vars(parser.parse_args())
-    print(parse_args)
+    parse_args['config_file'] = parse_args['dataset'] + '.yaml'
 
-    acc = np.zeros(10)
-    times = np.zeros(10)
-    for seed in range(10):
+    if parse_args['dataset'] == 'cora':
+        dataset_loader_func = utils.cora_loader
+    elif parse_args['dataset'] == 'pubmed':
+        dataset_loader_func = utils.pubmed_loader
+
+    acc = np.zeros(1)
+    times = np.zeros(1)
+    for seed in range(1):
         setup_seed(seed)
-        acc[seed], times[seed] = run(utils.ppi_loader, parse_args, seed)
+        acc[seed], times[seed] = run(dataset_loader_func, parse_args, seed)
 
-    print('')
-    print(np.mean(acc), np.mean(times))
-    print(np.std(acc), np.std(times))
+    # print('')
+    # print(np.mean(acc), np.mean(times))
+    # print(np.std(acc), np.std(times))
 

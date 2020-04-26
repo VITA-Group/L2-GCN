@@ -10,8 +10,8 @@ import yaml
 import argparse
 import scipy.sparse as sps
 
-import l2o_lwgcn.utils as utils
-import l2o_lwgcn.net as net
+import l2_gcn.utils as utils
+import l2_gcn.net as net
 
 
 def run_l2o(dataset_load_func, parse_args, seed):
@@ -32,7 +32,6 @@ def run_l2o(dataset_load_func, parse_args, seed):
         if (not parg_key in args.keys()) or parse_args[parg_key] == None:
             continue
         args[parg_key] = parse_args[parg_key]
-    print(args)
 
     ##############################################################
     ##############################################################
@@ -93,6 +92,7 @@ def run_l2o(dataset_load_func, parse_args, seed):
         for n in range(4):
             predefine_action[ir*5+n, random.sample(range(args['controller_len']-1), args['layer_num']-1)] = 1
 
+    print('searching...')
     # start training
     for feat_train, label_train, train_sample, iround in dataset_train_sample:
 
@@ -108,14 +108,10 @@ def run_l2o(dataset_load_func, parse_args, seed):
         Adj_train = Adj_train + Adj_eye[train_sample, :][:, train_sample]
 
         epochs = 0
+        sp = []
 
-        print('')
-        print('New round')
-        print('')
 
         for l in range(args['layer_num']):
-
-            print('layer ' + str(l+1) + ' training:')
 
             feat_train = feat_train.numpy()
             feat_train = Adj_train.dot(feat_train)
@@ -143,7 +139,6 @@ def run_l2o(dataset_load_func, parse_args, seed):
                     loss_base = loss.detach()
 
                 batch = batch + 1
-                print('batch', batch, 'loss:', loss.data)
 
                 input_l2o = torch.zeros((1, args['layer_num']+1)).cuda()
                 input_l2o[0] = loss.detach() - loss_base + 1 ###
@@ -159,6 +154,7 @@ def run_l2o(dataset_load_func, parse_args, seed):
                 if iround < args['init_round'] * 5:
                     action = predefine_action[iround, int(epochs/args['decision_step'])]
                 epochs = epochs + 1
+                sp.append(controller_l2o.get_stop_prob())
 
                 # stop or not
                 if action == 1:
@@ -170,7 +166,6 @@ def run_l2o(dataset_load_func, parse_args, seed):
                     break
 
         neg_rewards = loss.detach().cuda() + epochs * args['time_ratio']
-        print('loss: ', neg_rewards)
         baseline = args['baseline_ratio'] * baseline + (1 - args['baseline_ratio']) * neg_rewards
         neg_rewards = neg_rewards - baseline
         neg_rewards = sum( controller_l2o.get_selected_log_probs() ) * neg_rewards
@@ -186,11 +181,10 @@ def run_l2o(dataset_load_func, parse_args, seed):
     # l2o-lwgcn  training         #
     ###############################
 
-    print(args)
-
     result_file = './result/' + config_file[:-5] + '_l2o_' + str(args['layer_num']) + '_layer_' + str(seed) + '.npy'
     result_loss_data = []
     batch_each_layer = []
+    args['stop_prob_threshold'] = np.mean(sp)
 
     # feature and label generate
     num_nodes = args['node_num']
@@ -285,7 +279,7 @@ def run_l2o(dataset_load_func, parse_args, seed):
                 break
 
     os.system('nvidia-smi')
-    np.save(result_file, np.array(result_loss_data))
+    # np.save(result_file, np.array(result_loss_data))
 
     ##############################################################
     ##############################################################
@@ -314,10 +308,9 @@ def run_l2o(dataset_load_func, parse_args, seed):
 def parser_loader():
 
     parser = argparse.ArgumentParser(description='L2O_LWGCN')
-    parser.add_argument('--dataset', type=str, default='reddit')
-    parser.add_argument('--config-file', type=str, default='reddit.yaml')
-    parser.add_argument('--layer-num', type=int, default=None)
-    parser.add_argument('--epoch-num', nargs='+', type=int, default=None)
+    parser.add_argument('--dataset', type=str, default='cora')
+    parser.add_argument('--layer-num', type=int, default=2)
+    parser.add_argument('--epoch-num', nargs='+', type=int, default=[80, 80])
     parser.add_argument('--controller-len', type=int, default=None)
 
     return parser
@@ -335,28 +328,22 @@ if __name__ == "__main__":
 
     parser = parser_loader()
     parse_args = vars(parser.parse_args())
-    print(parse_args)
+    parse_args['config_file'] = parse_args['dataset'] + '.yaml'
 
     if parse_args['dataset'] == 'cora':
         dataset_loader_func = utils.cora_loader
     elif parse_args['dataset'] == 'pubmed':
         dataset_loader_func = utils.pubmed_loader
-    elif parse_args['dataset'] == 'reddit':
-        dataset_loader_func = utils.reddit_loader
-    elif parse_args['dataset'] == 'amazon_670k':
-        dataset_loader_func = utils.amazon_670k_loader
-    elif parse_args['dataset'] == 'amazon_3m':
-        dataset_loader_func = utils.amazon_3m_loader
 
-    acc = np.zeros(10)
-    epoch_sum = np.zeros(10)
-    times = np.zeros(10)
-    epoch_array = np.zeros((parse_args['layer_num'], 10))
-    for seed in range(10):
+    acc = np.zeros(1)
+    epoch_sum = np.zeros(1)
+    times = np.zeros(1)
+    epoch_array = np.zeros((parse_args['layer_num'], 1))
+    for seed in range(1):
         setup_seed(seed)
         acc[seed], epoch_sum[seed], times[seed], epoch_array[:, seed] = run_l2o(dataset_loader_func, parse_args, seed)
 
-    print('')
-    print(np.mean(acc), np.mean(epoch_sum), np.mean(times), np.mean(epoch_array, axis=1))
-    print(np.std(acc), np.std(epoch_sum), np.std(times), np.std(epoch_array, axis=1))
+    # print('')
+    # print(np.mean(acc), np.mean(epoch_sum), np.mean(times), np.mean(epoch_array, axis=1))
+    # print(np.std(acc), np.std(epoch_sum), np.std(times), np.std(epoch_array, axis=1))
 

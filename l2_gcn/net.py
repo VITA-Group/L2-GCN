@@ -63,7 +63,6 @@ class controller_l2o(nn.Module):
 
         prob = torch.nn.functional.softmax(logit, dim=-1)
         self.stop_prob = prob[0, 1]
-        print(prob.data)
         action = prob.multinomial(1)
         log_prob = torch.nn.functional.log_softmax(logit, dim=-1)
 
@@ -77,5 +76,5 @@ class controller_l2o(nn.Module):
         return selected_log_probs
 
     def get_stop_prob(self):
-        return self.stop_prob
+        return self.stop_prob.cpu().detach().numpy()
 

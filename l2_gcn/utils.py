@@ -7,9 +7,7 @@ import scipy.sparse as sps
 from sklearn.preprocessing import StandardScaler
 import random
 import sys
-
 from fastgcn_utils.utils import *
-# from fastgcn_utils.train_batch_multiRank_inductive_reddit_Mixlayers_sampleA import *
 
 
 class feeder(d.Dataset):
@@ -100,8 +98,8 @@ def cora_loader():
 
     dataset_split = {}
     dataset_split['test'] = np.array(test_idx_range.tolist())
-    dataset_split['train'] = np.array(range(1208))
-    dataset_split['val'] = np.array(range(1208, 1708))
+    dataset_split['train'] = np.array(list(range(140)) + list(range(140 + 500, 1708)))
+    dataset_split['val'] = np.array(range(140, 140 + 500))
 
     return feat_data, labels, Adj, dataset_split
 
@@ -150,169 +148,9 @@ def pubmed_loader():
     # assert False
 
     dataset_split = {}
-    '''
     dataset_split['test'] = np.array(test_idx_range.tolist())
-    dataset_split['train'] = np.array(range(18217))
-    dataset_split['val'] = np.array(range(18217, 19717))
-    '''
-    ssp = np.random.permutation(19717)
-    dataset_split['test'] = list(ssp[:1000])
-    dataset_split['val'] = list(ssp[1000:1500])
-    dataset_split['train'] = list(ssp[1500:])
+    dataset_split['train'] = np.array(list(range(60)) + list(range(60 + 500, 18217)))
+    dataset_split['val'] = np.array(range(60, 60 + 500))
 
     return feat_data, labels, Adj, dataset_split
-
-def ppi_loader():
-
-    node_num = 56944
-    feat_num = 50
-    class_num = 121
-
-    dataset_dir = '/scratch/user/yuning.you/dataset/ppi/ppi'
-    id_map_file = dataset_dir + '/ppi-id_map.json'
-    node_file = dataset_dir + '/ppi-G.json'
-    A_file = dataset_dir + '/Adj_hat.npz'
-    feat_file = dataset_dir + '/ppi-feats.npy'
-    label_file = dataset_dir + '/label.npy'
-
-    # load feature
-    feat = np.load(feat_file)
-    scaler = StandardScaler()
-    scaler.fit(feat)
-    feat = scaler.transform(feat)
-
-    # load id map
-    with open(id_map_file, 'r') as f:
-        id_map = json.load(f)
-
-    # load label
-    label = np.load(label_file)
-    label = label.astype(np.float32)
-
-    # load Adj hat matrix
-    Adj_hat = sps.load_npz(A_file)
-
-    # load dataset split: [train, val, test]
-    with open(node_file, 'r') as f:
-        data_node = json.load(f)['nodes']
-    dataset_split = {'train': [], 'val': [], 'test': []}
-    for dn in data_node:
-        if dn['val']:
-            dataset_split['val'].append(dn['id'])
-        elif dn['test']:
-            dataset_split['test'].append(dn['id'])
-        else:
-            dataset_split['train'].append(dn['id'])
-
-    return feat, label, Adj_hat, dataset_split
-
-
-def reddit_loader():
-
-    node_num = 232965
-    feat_num = 100
-    class_num = 41
-
-    adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ('/scratch/user/yuning.you/dataset/reddit/reddit/')
-    Adj_hat = adj + adj.T + sps.eye(node_num).tocsr()
-
-    # load feature
-    features = sps.lil_matrix(features)
-    normADJ = nontuple_preprocess_adj(adj)
-    feat = normADJ.dot(features).todense()
-
-    dataset_dir = '/scratch/user/yuning.you/dataset/reddit/reddit'
-    id_map_file = dataset_dir + '/reddit-id_map.json'
-    node_file = dataset_dir + '/reddit-G.json'
-    A_file = dataset_dir + '/Adj_hat.npz'
-    feat_file = dataset_dir + '/reddit-feats.npy'
-    label_file = dataset_dir + '/reddit-class_map.json'
-
-    # load id map
-    with open(id_map_file, 'r') as f:
-        id_map = json.load(f)
-
-    # load label
-    with open(label_file, 'r') as f:
-        data_label = json.load(f)
-    label = np.ones(node_num, dtype=np.int64) * -1
-    for dl in data_label.items():
-        label[id_map[dl[0]]] = dl[1]
-
-    # load dataset split: [train, val, test]
-    dataset_split = {}
-    dataset_split['train'] = train_index
-    dataset_split['val'] = val_index
-    dataset_split['test'] = test_index
-
-    return feat, label, Adj_hat, dataset_split
-
-
-def amazon_670k_loader():
-
-    node_num = 643474
-    feat_num = 100
-    class_num = 32
-
-    dataset_dir = '/scratch/user/yuning.you/dataset/amazon_670k/amazon_670k'
-    A_file = dataset_dir + '/Adj_hat.npz'
-    feat_file = dataset_dir + '/feat_truncatedSVD.npy'
-    label_file = dataset_dir + '/label.npy'
-    dataset_split_file = dataset_dir + '/dataset_split.json'
-
-    # load feature
-    feat = np.load(feat_file)
-    scaler = StandardScaler()
-    scaler.fit(feat)
-    feat = scaler.transform(feat)
-
-    # load label
-    label = np.load(label_file)
-    label = label.astype(np.int64)
-
-    # load Adj hat matrix
-    Adj_hat = sps.load_npz(A_file)
-
-    # load dataset split: [train, val, test]
-    with open(dataset_split_file, 'r') as f:
-        dataset_split = json.load(f)
-    dataset_split['val'] = dataset_split['train'][-70000:]
-    dataset_split['train'] = dataset_split['train'][:-70000]
-
-    return feat, label, Adj_hat, dataset_split
-
-
-def amazon_3m_loader():
-
-    node_num = 2460406
-    edge_num = -1
-    class_num = 38
-
-    dataset_dir = '/scratch/user/yuning.you/dataset/amazon_3m/amazon_3m'
-    A_file = dataset_dir + '/Adj_hat.npz'
-    feat_file = dataset_dir + '/feat_truncatedSVD.npy'
-    label_file = dataset_dir + '/label.npy'
-    dataset_split_file = dataset_dir + '/dataset_split.json'
-
-    # load feature
-    feat = np.load(feat_file)
-    scaler = StandardScaler()
-    scaler.fit(feat)
-    feat = scaler.transform(feat)
-
-    # load label
-    label = np.load(label_file)
-    label = label.astype(np.int64)
-
-    # load Adj hat matrix
-    Adj_hat = sps.load_npz(A_file)
-
-    # load dataset split: [train, val, test]
-    with open(dataset_split_file, 'r') as f:
-        dataset_split = json.load(f)
-    print(len(dataset_split['train']), len(dataset_split['test']))
-    dataset_split['val'] = dataset_split['train'][-300000:]
-    dataset_split['train'] = dataset_split['train'][:-300000]
-
-    return feat, label, Adj_hat, dataset_split
 

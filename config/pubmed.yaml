@@ -10,7 +10,7 @@ epoch_num: [80, 80]
 
 l2o_learning_rate: 0.05
 baseline_reward: 0.3
-total_round: 200
+total_round: 50
 sample_node_num: 1024
 stop_prob_threshold: 0.6
 controller_len: 20
