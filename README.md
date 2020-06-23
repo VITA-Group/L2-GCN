@@ -9,10 +9,11 @@ Graph convolution networks (GCN) are increasingly popular in many applications, 
 If you are use this code for you research, please cite our paper.
 
 ```
-@inproceedings{you20202,
-  title={L^2-GCN: Layer-Wise and Learned Efficient Training of Graph Convolutional Networks},
+@inproceedings{you2020l2,
+  title={L2-GCN: Layer-Wise and Learned Efficient Training of Graph Convolutional Networks},
   author={You, Yuning and Chen, Tianlong and Wang, Zhangyang and Shen, Yang},
-  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={2127--2135},
   year={2020}
 }
 ```
