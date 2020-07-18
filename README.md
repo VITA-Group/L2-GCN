@@ -10,7 +10,7 @@ If you are use this code for you research, please cite our paper.
 
 ```
 @inproceedings{you2020l2,
-  title={L2-GCN: Layer-Wise and Learned Efficient Training of Graph Convolutional Networks},
+  title={L$^2$-GCN: Layer-Wise and Learned Efficient Training of Graph Convolutional Networks},
   author={You, Yuning and Chen, Tianlong and Wang, Zhangyang and Shen, Yang},
   booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
   pages={2127--2135},
