@@ -162,8 +162,8 @@ def parser_loader():
 
     parser = argparse.ArgumentParser(description='L2O_LWGCN')
     parser.add_argument('--dataset', type=str, default='cora')
-    parser.add_argument('--layer-num', type=int, default=2)
-    parser.add_argument('--epoch-num', nargs='+', type=int, default=[80, 80])
+    # parser.add_argument('--layer-num', type=int, default=2)
+    # parser.add_argument('--epoch-num', nargs='+', type=int, default=[80, 80])
 
     return parser
 
@@ -188,6 +188,12 @@ if __name__ == "__main__":
         dataset_loader_func = utils.cora_loader
     elif parse_args['dataset'] == 'pubmed':
         dataset_loader_func = utils.pubmed_loader
+    elif parse_args['dataset'] == 'reddit':
+        dataset_loader_func = utils.reddit_loader
+    elif parse_args['dataset'] == 'amazon_670k':
+        dataset_loader_func = utils.amazon_670k_loader
+    elif parse_args['dataset'] == 'amazon_3m':
+        dataset_loader_func = utils.amazon_3m_loader
 
     acc = np.zeros(1)
     times = np.zeros(1)

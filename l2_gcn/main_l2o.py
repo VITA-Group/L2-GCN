@@ -334,6 +334,13 @@ if __name__ == "__main__":
         dataset_loader_func = utils.cora_loader
     elif parse_args['dataset'] == 'pubmed':
         dataset_loader_func = utils.pubmed_loader
+    elif parse_args['dataset'] == 'reddit':
+        dataset_loader_func = utils.reddit_loader
+    elif parse_args['dataset'] == 'amazon_670k':
+        dataset_loader_func = utils.amazon_670k_loader
+    elif parse_args['dataset'] == 'amazon_3m':
+        dataset_loader_func = utils.amazon_3m_loader
+
 
     acc = np.zeros(1)
     epoch_sum = np.zeros(1)

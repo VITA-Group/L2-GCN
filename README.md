@@ -26,16 +26,20 @@ If you are use this code for you research, please cite our paper.
 
 ## Run
 
+Download data from https://drive.google.com/file/d/1amUK4zWRxBsVyi3eqCHQFTtaWtmm67hW/view?usp=sharing.
+
 **L-GCN**
 
 ```shell
 python -m l2_gcn.main --dataset cora
+python -m l2_gcn2.main_ppi --dataset ppi
 ```
 
 **L<sup>2</sup>-GCN**
 
 ```shell
 python -m l2_gcn.main_l2o --dataset cora
+python -m l2_gcn2.main_l2o_ppi --dataset ppi
 ```
 
 

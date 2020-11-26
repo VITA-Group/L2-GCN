@@ -1,0 +1,22 @@
+device: cuda
+
+node_num: 56944
+feat_dim: 50
+class_num: 121
+
+layer_num: 3
+layer_output_dim: [512, 512, 512, 512, 512]
+learning_rate: 0.001
+batch_size: 1024
+layer_train_batch: [400, 400, 400, 400, 400]
+
+l2o_learning_rate: 0.05
+baseline_reward: 0.3
+total_round: 50
+sample_node_num: 1024
+stop_prob_threshold: 0.6 # 0.9
+controller_len: 40 # 32 # 24 
+init_round: 10 # ir*5
+decision_step: 50
+time_ratio: 0.0001
+baseline_ratio: 0.9

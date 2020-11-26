@@ -29,9 +29,11 @@ class feeder(d.Dataset):
 
 class feeder_sample(d.Dataset):
 
-    def __init__(self, feat, label, train, total_round, sample_node_num):
+    def __init__(self, feat, label, Adj_hat, Adj_eye, train, total_round, sample_node_num):
         self.feat = feat
         self.label = label
+        self.Adj_hat = Adj_hat
+        self.Adj_eye = Adj_eye
         self.train = train
         self.total_round = total_round
         self.sample_node_num = sample_node_num
@@ -78,20 +80,20 @@ def cora_loader():
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
-        with open("dataset/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
+        with open("data/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
             if sys.version_info > (3, 0):
                 objects.append(pkl.load(f, encoding='latin1'))
             else:
                 objects.append(pkl.load(f))
 
     x, y, tx, ty, allx, ally, graph = tuple(objects)
-    test_idx_reorder = parse_index_file("dataset/ind.{}.test.index".format(dataset_str))
+    test_idx_reorder = parse_index_file("data/ind.{}.test.index".format(dataset_str))
     test_idx_range = np.sort(test_idx_reorder)
 
     features = sp.vstack((allx, tx)).tolil()
     features[test_idx_reorder, :] = features[test_idx_range, :]
     feat_data = features.todense()
-    Adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph)) + sps.eye(2708).tocsr()
+    Adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
 
     labels = np.vstack((ally, ty))
     labels[test_idx_reorder, :] = labels[test_idx_range, :]
@@ -100,8 +102,8 @@ def cora_loader():
 
     dataset_split = {}
     dataset_split['test'] = np.array(test_idx_range.tolist())
-    dataset_split['train'] = np.array(list(range(140)) + list(range(140 + 500, 1708)))
-    dataset_split['val'] = np.array(range(140, 140 + 500))
+    dataset_split['train'] = np.array(range(1208))
+    dataset_split['val'] = np.array(range(1208, 1708))
 
     return feat_data, labels, Adj, dataset_split
 
@@ -129,20 +131,20 @@ def pubmed_loader():
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
-        with open("dataset/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
+        with open("data/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
             if sys.version_info > (3, 0):
                 objects.append(pkl.load(f, encoding='latin1'))
             else:
                 objects.append(pkl.load(f))
 
     x, y, tx, ty, allx, ally, graph = tuple(objects)
-    test_idx_reorder = parse_index_file("dataset/ind.{}.test.index".format(dataset_str))
+    test_idx_reorder = parse_index_file("data/ind.{}.test.index".format(dataset_str))
     test_idx_range = np.sort(test_idx_reorder)
 
-    features = sps.vstack((allx, tx)).tolil()
+    features = sp.vstack((allx, tx)).tolil()
     features[test_idx_reorder, :] = features[test_idx_range, :]
     feat_data = features.todense()
-    Adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph)) + sps.eye(19717).tocsr()
+    Adj = nx.adjacency_matrix(nx.from_dict_of_lists(graph))
 
     labels = np.vstack((ally, ty))
     labels[test_idx_reorder, :] = labels[test_idx_range, :]
@@ -151,8 +153,8 @@ def pubmed_loader():
 
     dataset_split = {}
     dataset_split['test'] = np.array(test_idx_range.tolist())
-    dataset_split['train'] = np.array(list(range(60)) + list(range(60 + 500, 18217)))
-    dataset_split['val'] = np.array(range(60, 60 + 500))
+    dataset_split['train'] = np.array(range(18217))
+    dataset_split['val'] = np.array(range(18217, 18717))
 
     return feat_data, labels, Adj, dataset_split
 
@@ -208,15 +210,15 @@ def reddit_loader():
     feat_num = 100
     class_num = 41
 
-    adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ('dataset/dataset/reddit/reddit/')
-    Adj_hat = adj + adj.T + sps.eye(node_num).tocsr()
+    adj, features, y_train, y_val, y_test, train_index, val_index, test_index = loadRedditFromNPZ("./")
+    Adj_hat = adj + adj.T
 
     # load feature
     features = sps.lil_matrix(features)
     normADJ = nontuple_preprocess_adj(adj)
     feat = normADJ.dot(features).todense()
 
-    dataset_dir = 'dataset/dataset/reddit/reddit/'
+    dataset_dir = '/scratch/user/yuning.you/dataset/reddit/reddit'
     id_map_file = dataset_dir + '/reddit-id_map.json'
     node_file = dataset_dir + '/reddit-G.json'
     A_file = dataset_dir + '/Adj_hat.npz'
@@ -249,7 +251,7 @@ def amazon_670k_loader():
     feat_num = 100
     class_num = 32
 
-    dataset_dir = 'dataset/dataset/amazon_670k/amazon_670k'
+    dataset_dir = '/scratch/user/yuning.you/dataset/amazon_670k/amazon_670k'
     A_file = dataset_dir + '/Adj_hat.npz'
     feat_file = dataset_dir + '/feat_truncatedSVD.npy'
     label_file = dataset_dir + '/label.npy'
@@ -283,7 +285,7 @@ def amazon_3m_loader():
     edge_num = -1
     class_num = 38
 
-    dataset_dir = 'dataset/dataset/amazon_3m/amazon_3m'
+    dataset_dir = '/scratch/user/yuning.you/dataset/amazon_3m/amazon_3m'
     A_file = dataset_dir + '/Adj_hat.npz'
     feat_file = dataset_dir + '/feat_truncatedSVD.npy'
     label_file = dataset_dir + '/label.npy'
@@ -310,3 +312,4 @@ def amazon_3m_loader():
     dataset_split['train'] = dataset_split['train'][:-300000]
 
     return feat, label, Adj_hat, dataset_split
+
