@@ -112,7 +112,7 @@ def run_l2o(dataset_load_func, seed, dataset, config_file, layer_num, epoch_num,
     for feat_train, label_train, train_sample, iround in dataset_train_sample:
 
         feat_train = feat_train.view(args['sample_node_num'], args['feat_dim'])
-        label_train = label_train.view(-1)
+        label_train = label_train.view(1024, 121)
 
         Adj_train = Adj_hat[train_sample, :][:, train_sample]
         D = Adj_train.sum(axis=0)
