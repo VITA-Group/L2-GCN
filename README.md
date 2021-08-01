@@ -26,7 +26,7 @@ If you are use this code for you research, please cite our paper.
 
 ## Run
 
-Download data from https://drive.google.com/file/d/1amUK4zWRxBsVyi3eqCHQFTtaWtmm67hW/view?usp=sharing.
+Download data from https://drive.google.com/file/d/1Je67uYhruiChW6zXzeefGh-ULzJrAtdC/view?usp=sharing.
 
 **L-GCN**
 
